@@ -1,0 +1,13 @@
+# Decompiled game source — The Fun Pimps' copyrighted code, never publish
+decompiled/
+
+# Build output
+src/**/bin/
+src/**/obj/
+
+# Packaged builds (attach zips to GitHub releases instead)
+dist/
+
+# IDE / misc
+.vs/
+*.user

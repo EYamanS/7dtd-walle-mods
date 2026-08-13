@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>WalleQoL</AssemblyName>
+    <RootNamespace>WalleQoL</RootNamespace>
+    <ModDeployDir>$(GameDir)\Mods\WalleQoL</ModDeployDir>
+  </PropertyGroup>
+
+  <Target Name="DeployMod" AfterTargets="Build">
+    <MakeDir Directories="$(ModDeployDir)" />
+    <MakeDir Directories="$(ModDeployDir)\Config" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModDeployDir)" />
+    <Copy SourceFiles="ModInfo.xml" DestinationFolder="$(ModDeployDir)" />
+    <Copy SourceFiles="Config\Localization.txt" DestinationFolder="$(ModDeployDir)\Config" />
+    <Copy SourceFiles="WalleQoLConfig.xml" DestinationFolder="$(ModDeployDir)" Condition="!Exists('$(ModDeployDir)\WalleQoLConfig.xml')" />
+    <Message Importance="high" Text="WalleQoL deployed to $(ModDeployDir)" />
+  </Target>
+</Project>

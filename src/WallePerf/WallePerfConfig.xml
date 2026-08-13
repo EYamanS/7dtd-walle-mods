@@ -1,0 +1,54 @@
+<!-- WallePerf: set enabled="false" to turn any patch off (takes effect on next game start). -->
+<WallePerf>
+	<!-- T1.1: Cache the dynamic-music threat scan (50m entity sweep) instead of running it every frame. -->
+	<patch name="MusicThreatCache" enabled="true" />
+	<!-- T1.2: Bound the weather emitter SphereCast (was: radius 9m, distance infinity, every frame). -->
+	<patch name="WeatherCastDistance" enabled="true" />
+	<!-- T1.3: Skip re-parsing UI binding attributes when their value did not change. -->
+	<patch name="UiBindingSkip" enabled="true" />
+	<!-- T1.4: Refresh compass/map nav objects at ~12Hz instead of every frame. -->
+	<patch name="NavThrottle" enabled="true" />
+	<!-- T1.5: Throttle obstacle raycasts for zombies farther than 15m from any player. -->
+	<patch name="DistantMoveThrottle" enabled="true" />
+	<!-- T1.6: Run the per-tick all-entity AI activity ranking every 5th tick. -->
+	<patch name="EntityActivityThrottle" enabled="true" />
+	<!-- T1.7: Skip the debug-only mesh index validation loop on every mesh upload. -->
+	<patch name="MeshValidateSkip" enabled="true" />
+	<!-- T1.8a: Skip falling-block explosion bookkeeping when there are no explosions. -->
+	<patch name="ExplodeEarlyOut" enabled="true" />
+	<!-- T1.8b: Quest rally-flag setup: no per-frame allocation, early-out with no rally quests. -->
+	<patch name="RallyFlagsScratch" enabled="true" />
+	<!-- T1.8d: Reuse one scratch list in Entity.Update animator-audio cleanup (no per-frame allocation). -->
+	<patch name="AnimatorAudioScratch" enabled="true" />
+	<!-- T1.8e: Character shader LOD: cache camera, only write shader LOD when it changes. -->
+	<patch name="CharacterLodCache" enabled="true" />
+
+	<!-- ===== Tier 2 (v0.2) ===== -->
+	<!-- T2.1: Skip duplicate A* path requests when the target barely moved and a usable path exists. -->
+	<patch name="PathRequestThrottle" enabled="true" />
+	<!-- T2.2: Skip cosmetic path corner-smoothing (physics casts) for entities >20m from any player. -->
+	<patch name="PathSmoothDistanceCap" enabled="true" />
+	<!-- T2.3: Bound block-change chunk rebuilds to one chunk per frame (fixes the dig/place hitch). -->
+	<patch name="BlockRebuildBudget" enabled="true" />
+	<!-- T2.4a: Skip the UV-distribution-metrics pass on terrain mesh uploads (mip-streaming heuristic, unused). -->
+	<patch name="TerrainUvMetricsSkip" enabled="true" />
+	<!-- T2.4b EXPERIMENTAL (default off): also skip terrain tangent recalculation. Big upload win,
+	     but check terrain lighting on cliffs looks normal before keeping it on. -->
+	<patch name="TerrainTangentSkip" enabled="false" />
+	<!-- T2.7: Cache tag parsing in EffectManager.GetValue (the game's hottest stat query). -->
+	<patch name="EffectTagCache" enabled="true" />
+	<!-- T2.6a: Compass markers + bindings at ~10Hz instead of every frame. -->
+	<patch name="CompassThrottle" enabled="true" />
+	<!-- T2.6b: Stat bars stop refreshing bindings every frame while the HUD is hidden. -->
+	<patch name="StatBarHiddenSkip" enabled="true" />
+	<!-- T2.8: Use the cached player camera instead of GetComponent every frame for crosshair spread. -->
+	<patch name="CrosshairCameraFix" enabled="true" />
+	<!-- T2.10: Dodge AI only scans for attackers when the entity actually has a target. -->
+	<patch name="DodgeGate" enabled="true" />
+
+	<!-- ===== Tier 3: engine load shedding (v0.3) ===== -->
+	<!-- Zombies >25m from any player stop casting shadows (restored below 20m). -->
+	<patch name="ZombieShadowCull" enabled="true" />
+	<!-- Zombies >25m switch to CullUpdateTransforms: no pose/IK cost while off-screen. -->
+	<patch name="ZombieAnimatorCull" enabled="true" />
+</WallePerf>

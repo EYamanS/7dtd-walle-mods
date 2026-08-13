@@ -1,0 +1,77 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Xml;
+using HarmonyLib;
+
+namespace WalleQoL
+{
+	public class WalleQoLMod : IModApi
+	{
+		public const string HarmonyId = "walle.qol";
+
+		static readonly (string name, Type[] types)[] Features =
+		{
+			("SharedContainers", new[] { typeof(Patches.SharedLockPatch), typeof(Patches.LiveContainerSyncPatch) }),
+			("QuickDeposit", new[] { typeof(Patches.DepositCommandPatch), typeof(Patches.DepositEnablePatch), typeof(Patches.DepositActivatePatch) }),
+		};
+
+		public void InitMod(Mod _modInstance)
+		{
+			HashSet<string> disabled = LoadDisabled(_modInstance);
+			Harmony harmony = new Harmony(HarmonyId);
+			foreach ((string name, Type[] types) in Features)
+			{
+				if (disabled.Contains(name))
+				{
+					Log.Out("[WalleQoL] {0}: disabled by config", name);
+					continue;
+				}
+				try
+				{
+					foreach (Type type in types)
+					{
+						harmony.CreateClassProcessor(type).Patch();
+					}
+					Log.Out("[WalleQoL] {0}: enabled", name);
+				}
+				catch (Exception e)
+				{
+					Log.Error("[WalleQoL] {0}: FAILED to apply", name);
+					Log.Exception(e);
+				}
+			}
+			Log.Out("[WalleQoL] v0.1.0 loaded");
+		}
+
+		static HashSet<string> LoadDisabled(Mod _modInstance)
+		{
+			HashSet<string> disabled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+			try
+			{
+				string path = Path.Combine(_modInstance.Path, "WalleQoLConfig.xml");
+				if (!File.Exists(path))
+				{
+					return disabled;
+				}
+				XmlDocument doc = new XmlDocument();
+				doc.Load(path);
+				foreach (XmlNode node in doc.SelectNodes("//feature"))
+				{
+					string name = node.Attributes?["name"]?.Value;
+					string enabled = node.Attributes?["enabled"]?.Value;
+					if (name != null && string.Equals(enabled, "false", StringComparison.OrdinalIgnoreCase))
+					{
+						disabled.Add(name);
+					}
+				}
+			}
+			catch (Exception e)
+			{
+				Log.Warning("[WalleQoL] Could not read WalleQoLConfig.xml, all features enabled");
+				Log.Exception(e);
+			}
+			return disabled;
+		}
+	}
+}
