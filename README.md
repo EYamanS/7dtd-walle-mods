@@ -1,81 +1,84 @@
-# 7DTD Modding Workspace
+# Walle Mods — Performance (FPS Boost) & Quality of Life mods for 7 Days to Die
 
-Custom performance + QoL mods for 7 Days to Die v2.5, built from a decompiled-source analysis.
+[![Latest release](https://img.shields.io/github/v/release/EYamanS/7dtd-walle-mods)](https://github.com/EYamanS/7dtd-walle-mods/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/EYamanS/7dtd-walle-mods/total)](https://github.com/EYamanS/7dtd-walle-mods/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-## Layout
+**Harmony mods for 7 Days to Die V2.x** (built and benchmarked on v2.5) that fix real, measured performance problems in the game's code — not another settings tweak pack. Created from a full code-level frame-time audit of the decompiled game, with every claim verified by an in-game A/B benchmark.
 
-| Path | What |
-|---|---|
-| `decompiled\` | Full decompiled game source (Assembly-CSharp, ilspycmd) — reference only |
-| `ANALYSIS.md` | The performance audit: 24 ranked findings + 3 vanilla bugs, with file:line cites |
-| `src\WallePerf\` | Performance mod — 11 Harmony patches (Tier 1 of the audit) + `walleperf on/off` runtime toggle |
-| `src\WalleQoL\` | QoL mod — shared chest access + quick deposit radial command (with −N item toasts) |
-| `src\WalleBench\` | Benchmark mod — `bench base` / `bench horde` console commands, CSV results |
-| `src\Directory.Build.props` | Game paths + assembly references shared by both projects |
+**[⬇ Download the latest release](https://github.com/EYamanS/7dtd-walle-mods/releases/latest)** — extract, run `install.bat`, play.
 
-## Build & deploy
+---
 
-```powershell
-dotnet build C:\Users\Yaman\7dtd-modding\src\WallePerf\WallePerf.csproj
-dotnet build C:\Users\Yaman\7dtd-modding\src\WalleQoL\WalleQoL.csproj
-```
+## ⚡ WallePerf — the performance / FPS boost mod
 
-Building auto-copies the DLL + ModInfo.xml into the game's `Mods\` folder. Config XMLs are
-only copied if not already present (your toggles survive rebuilds).
+23 code patches targeting the engine's actual hotspots. Measured on an i7-12700K + RX 6800 XT with the included benchmark (same scene, patches toggled live, VSync off):
 
-## Requirements to play with these mods
+| Scenario | Average FPS | 1% low FPS (smoothness) |
+|---|---|---|
+| Base scene | **+5–7%** | **+4%** |
+| 60-zombie horde | **+7.2%** | **+14.9%** |
 
-- **Launch the game with EAC disabled** (game launcher → uncheck EasyAntiCheat). DLL mods
-  never load under EAC (`SkipWithAntiCheat` makes them skip gracefully instead of erroring).
-- For multiplayer: install both mods on the **host and every player**.
-  - QuickDeposit technically works client-side only.
-  - SharedContainers *requires* the host/server to have it (lock decisions are server-side).
+What it actually fixes (full details in [ANALYSIS.md](ANALYSIS.md)):
 
-## Toggles
+- **Frame-time waste**: the dynamic music system scanned 50m of world *every frame*; the weather system fired an infinite-length SphereCast every frame; the UI re-parsed every binding every frame even when nothing changed; compass/map icons re-evaluated at 60 Hz. All cached or throttled.
+- **Horde performance**: zombies beyond 15m no longer run full-rate obstacle physics; chasing zombies stop spamming duplicate pathfinding requests; cosmetic path smoothing (up to 100 physics casts per path) skipped beyond 20m; distant zombies stop casting shadows and stop animating while off-screen.
+- **Stutter/hitches**: breaking or placing a block no longer rebuilds up to 9 chunks in a single frame (the classic dig-hitch); terrain mesh uploads trimmed; per-frame allocations removed (less GC stutter).
+- Every patch has an on/off toggle in `WallePerfConfig.xml`, and `walleperf on|off` in the F1 console toggles all of them **live, without restarting** — test the difference yourself.
 
-- `Mods\WallePerf\WallePerfConfig.xml` — every performance patch on/off individually.
-- `Mods\WalleQoL\WalleQoLConfig.xml` — SharedContainers / QuickDeposit on/off.
+## 🎒 WalleQoL — the quality of life mod
 
-Changes take effect on next game start. Check the game log (`%AppData%\..\LocalLow\The Fun
-Pimps\7 Days To Die\Player.log`) for `[WallePerf]` / `[WalleQoL]` lines to confirm what loaded.
+- **Shared containers (multiplayer)**: multiple players can open the **same chest at the same time**, with live-syncing windows — no more "container in use". Built on the game's own shared-lock system (the one traders already use).
+- **Quick deposit**: hold E on any of your placed containers → **"Deposit Items"** — tops up all matching stacks in the chest straight from your backpack without opening it. Shows `−N item` entries in the pickup feed, respects your locked backpack slots, skips chests you're locked out of.
 
-## What the mods do
+## 📊 WalleBench — benchmark & profiler (for tinkerers)
 
-**WallePerf v0.1** (see ANALYSIS.md Tier 1 for the full story):
-frame-time patches — music threat scan cached (was a 50m entity sweep per frame), weather
-ground-probe spherecast bounded (was infinite), UI binding parse skipped when unchanged,
-compass/nav icons at 12Hz, obstacle raycasts throttled for zombies >15m away, per-tick
-entity-activity sort at 4Hz, dead mesh-validation loop removed, plus assorted per-frame
-allocation and early-out fixes.
+In-game console commands (source repo only, not in the release zip):
 
-**WalleQoL v0.1**:
-- *SharedContainers*: player-placed chests use the LockManager's shared-lock mode (same
-  mechanism traders use), so several players can open one chest at once. Includes a sync fix
-  so open windows live-update instead of discarding other players' changes. Known limit: two
-  players grabbing the exact same stack within the same network round-trip can still race.
-- *QuickDeposit*: "Deposit Items" on the hold-E radial of player-placed containers — tops up
-  existing stacks from your backpack (same as the single-arrow button inside), without
-  opening the container. Respects locked backpack slots and chest locks. Batched into a
-  single network packet.
+- `bench auto` — fully automated A/B benchmark: god mode, position lock, VSync off, deterministic zombie horde, patches toggled on/off between segments, comparison table at the end.
+- `bench profile 20` — subsystem profiler: ranked ms/frame table of where the main thread's time goes, live in your own game.
 
-## Benchmarking — one command
+---
 
-In-game console (F1):
+## 📥 Install
 
-```
-bench auto
-```
+1. **[Download the latest release zip](https://github.com/EYamanS/7dtd-walle-mods/releases/latest)** and extract it anywhere
+2. Run **`install.bat`** — it finds your game automatically (or asks for the folder)
+3. Launch 7 Days to Die with **EasyAntiCheat disabled** (launcher checkbox) — DLL mods never load under EAC; this applies to every code mod, not just this one
+4. **Multiplayer**: the host **and** every player install the mods
 
-That's it. It god-modes you, locks your position, disables VSync, fixes the time of day,
-then runs four segments automatically — base and a deterministic 60-zombie ring, each with
-patches ON and OFF (toggled at runtime) — restores all your settings, and prints an A/B
-comparison table. Takes ~2.5 minutes. Optional: `bench auto <baseSec> <hordeCount> <hordeSec>`.
+Verify: press F1 in game — you should see `[WallePerf] ... patches active` and `[WalleQoL] ... enabled`.
 
-Manual pieces still exist: `bench base [sec]`, `bench horde [count] [sec]`, `bench clear`,
-`walleperf on|off|status`. Every run appends to `Mods\WalleBench\bench_results.csv`.
+**Uninstall**: delete `WallePerf` and `WalleQoL` from the game's `Mods` folder.
 
-## Next up (from ANALYSIS.md)
+## ⚙ Configuration
 
-Tier 2: pathfinding request dedup, path-smoothing cap, block-change chunk rebuild budgeting,
-terrain mesh async upload, autosave off main thread, HUD refresh throttles, EffectManager
-tag-parse hoist. Then Tier 3's bigger surgery if profiling justifies it.
+- `Mods/WallePerf/WallePerfConfig.xml` — every performance patch individually on/off (one experimental patch, `TerrainTangentSkip`, ships off by default)
+- `Mods/WalleQoL/WalleQoLConfig.xml` — shared containers / quick deposit on/off
+- Console: `walleperf on|off|status` — toggle all performance patches at runtime
+
+## 🔧 Building from source
+
+Requires a local 7 Days to Die install (the projects reference the game's assemblies) and the .NET SDK:
+
+1. Set your game path in `src/Directory.Build.props` (`GameDir`)
+2. `dotnet build src/WallePerf/WallePerf.csproj` (same for WalleQoL / WalleBench)
+3. Builds auto-deploy to the game's `Mods` folder and refresh `prebuilt/`
+
+**Releases are automated**: bump the version in `src/WallePerf/ModInfo.xml`, build, push to `main` — GitHub Actions packages the installer zip and publishes the release.
+
+## 📝 How this was made
+
+The entire game (`Assembly-CSharp.dll`, ~4,400 classes) was decompiled and audited subsystem by subsystem — game loop, AI/pathfinding, chunk/voxel meshing, rendering managers. The result is a ranked list of 24 concrete findings with file/line citations in **[ANALYSIS.md](ANALYSIS.md)**, three genuine vanilla bugs included. Patches were then implemented tier by tier and validated with the in-game benchmark after every round.
+
+The decompiled game source is **not** part of this repository (it's The Fun Pimps' copyrighted code) — only our own mod source, analysis notes, and tooling.
+
+## Compatibility
+
+- Game version: **7 Days to Die V2.x** (developed and tested on **v2.5**, Unity 2022.3)
+- Requires launching without EasyAntiCheat (standard for all DLL/Harmony mods)
+- Server + all clients for multiplayer; QuickDeposit also works client-side only
+
+## License
+
+[MIT](LICENSE) — mod source and tooling only. 7 Days to Die is © The Fun Pimps.

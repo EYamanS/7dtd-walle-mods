@@ -10,6 +10,7 @@
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModDeployDir)" />
     <Copy SourceFiles="ModInfo.xml" DestinationFolder="$(ModDeployDir)" />
     <Copy SourceFiles="WallePerfConfig.xml" DestinationFolder="$(ModDeployDir)" Condition="!Exists('$(ModDeployDir)\WallePerfConfig.xml')" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildProjectDirectory)\..\..\prebuilt" />
     <Message Importance="high" Text="WallePerf deployed to $(ModDeployDir)" />
   </Target>
 </Project>

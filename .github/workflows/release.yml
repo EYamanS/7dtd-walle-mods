@@ -1,0 +1,67 @@
+name: Release
+
+# On every push to main: read the mod version from ModInfo.xml, and if no release
+# exists for it yet, assemble the installer zip from the committed prebuilt DLLs
+# and publish a GitHub release. Bumping the version in src/WallePerf/ModInfo.xml
+# (and rebuilding locally so prebuilt/ is fresh) is all it takes to ship.
+#
+# CI cannot compile the mods (building requires the game's proprietary
+# assemblies, which are never committed) — that's why prebuilt/ exists.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read mod version
+        id: v
+        run: |
+          VERSION=$(grep -oP '(?<=Version value=")[^"]+' src/WallePerf/ModInfo.xml)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Mod version: $VERSION"
+
+      - name: Check if release already exists
+        id: exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v${{ steps.v.outputs.version }}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release v${{ steps.v.outputs.version }} already exists — nothing to do."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Assemble installer zip
+        if: steps.exists.outputs.exists == 'false'
+        run: |
+          set -e
+          test -f prebuilt/WallePerf.dll || { echo "ERROR: prebuilt/WallePerf.dll missing — run a local build before pushing a version bump"; exit 1; }
+          test -f prebuilt/WalleQoL.dll || { echo "ERROR: prebuilt/WalleQoL.dll missing — run a local build before pushing a version bump"; exit 1; }
+          STAGE=stage/Walle-Mods
+          mkdir -p "$STAGE/WallePerf" "$STAGE/WalleQoL/Config"
+          cp prebuilt/WallePerf.dll src/WallePerf/ModInfo.xml src/WallePerf/WallePerfConfig.xml "$STAGE/WallePerf/"
+          cp prebuilt/WalleQoL.dll src/WalleQoL/ModInfo.xml src/WalleQoL/WalleQoLConfig.xml "$STAGE/WalleQoL/"
+          cp src/WalleQoL/Config/Localization.txt "$STAGE/WalleQoL/Config/"
+          cp packaging/install.bat packaging/README.txt "$STAGE/"
+          cd stage/Walle-Mods && zip -r "../../Walle-Mods-v${{ steps.v.outputs.version }}.zip" . && cd ../..
+          unzip -l "Walle-Mods-v${{ steps.v.outputs.version }}.zip"
+
+      - name: Create release
+        if: steps.exists.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.v.outputs.version }}" \
+            "Walle-Mods-v${{ steps.v.outputs.version }}.zip" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Walle Mods v${{ steps.v.outputs.version }}" \
+            --notes-file packaging/RELEASE_NOTES.md

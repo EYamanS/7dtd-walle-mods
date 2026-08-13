@@ -12,6 +12,7 @@
     <Copy SourceFiles="ModInfo.xml" DestinationFolder="$(ModDeployDir)" />
     <Copy SourceFiles="Config\Localization.txt" DestinationFolder="$(ModDeployDir)\Config" />
     <Copy SourceFiles="WalleQoLConfig.xml" DestinationFolder="$(ModDeployDir)" Condition="!Exists('$(ModDeployDir)\WalleQoLConfig.xml')" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildProjectDirectory)\..\..\prebuilt" />
     <Message Importance="high" Text="WalleQoL deployed to $(ModDeployDir)" />
   </Target>
 </Project>
