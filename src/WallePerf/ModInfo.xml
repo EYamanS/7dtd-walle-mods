@@ -3,7 +3,7 @@
 	<DisplayName value="Walle Performance Patches" />
 	<Description value="Code-level performance patches: caches, throttles and main-thread fixes for known frame-time hotspots. Each patch can be toggled in WallePerfConfig.xml." />
 	<Author value="Yaman + Claude" />
-	<Version value="0.3.1" />
+	<Version value="0.3.2" />
 	<Website value="" />
 	<SkipWithAntiCheat value="true" />
 </xml>

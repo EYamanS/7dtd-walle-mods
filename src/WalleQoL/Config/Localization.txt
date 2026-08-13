@@ -1,4 +1,5 @@
 Key,File,Type,UsedInMainMenu,NoTranslate,english
+blockcommand_TEFeatureStorage:walle_deposit,UI,Tooltip,,,Deposit Items
 walle_deposit,UI,Tooltip,,,Deposit Items
 walleDepositDone,UI,Tooltip,,,Items deposited
 walleDepositNone,UI,Tooltip,,,Nothing to deposit

@@ -52,7 +52,7 @@ namespace WallePerf
 			disabledByConfig = LoadDisabled(_modInstance);
 			harmony = new Harmony(HarmonyId);
 			ApplyPatches();
-			Log.Out("[WallePerf] v0.3.1 loaded ('walleperf off/on/status' in console toggles patches at runtime)");
+			Log.Out("[WallePerf] v0.3.2 loaded ('walleperf off/on/status' in console toggles patches at runtime)");
 		}
 
 		public static int ApplyPatches()
