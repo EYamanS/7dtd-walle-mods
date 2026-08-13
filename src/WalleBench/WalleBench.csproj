@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>WalleBench</AssemblyName>
+    <RootNamespace>WalleBench</RootNamespace>
+    <ModDeployDir>$(GameDir)\Mods\WalleBench</ModDeployDir>
+  </PropertyGroup>
+
+  <Target Name="DeployMod" AfterTargets="Build">
+    <MakeDir Directories="$(ModDeployDir)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModDeployDir)" />
+    <Copy SourceFiles="ModInfo.xml" DestinationFolder="$(ModDeployDir)" />
+    <Message Importance="high" Text="WalleBench deployed to $(ModDeployDir)" />
+  </Target>
+</Project>

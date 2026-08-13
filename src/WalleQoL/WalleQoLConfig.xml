@@ -1,0 +1,10 @@
+<!-- WalleQoL: set enabled="false" to turn a feature off (takes effect on next game start). -->
+<WalleQoL>
+	<!-- Multiple players can open the same player-placed container at once.
+	     Must be installed on the host/server AND all players. -->
+	<feature name="SharedContainers" enabled="true" />
+	<!-- Adds a "Deposit items" command to the hold-E radial menu of player-placed containers:
+	     tops up existing stacks in the container from your backpack without opening it
+	     (same as the single-arrow button inside). Respects your locked backpack slots. -->
+	<feature name="QuickDeposit" enabled="true" />
+</WalleQoL>

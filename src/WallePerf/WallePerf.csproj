@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>WallePerf</AssemblyName>
+    <RootNamespace>WallePerf</RootNamespace>
+    <ModDeployDir>$(GameDir)\Mods\WallePerf</ModDeployDir>
+  </PropertyGroup>
+
+  <Target Name="DeployMod" AfterTargets="Build">
+    <MakeDir Directories="$(ModDeployDir)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModDeployDir)" />
+    <Copy SourceFiles="ModInfo.xml" DestinationFolder="$(ModDeployDir)" />
+    <Copy SourceFiles="WallePerfConfig.xml" DestinationFolder="$(ModDeployDir)" Condition="!Exists('$(ModDeployDir)\WallePerfConfig.xml')" />
+    <Message Importance="high" Text="WallePerf deployed to $(ModDeployDir)" />
+  </Target>
+</Project>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xml>
+	<Name value="WalleBench" />
+	<DisplayName value="Walle Benchmark" />
+	<Description value="In-game benchmark console command: 'bench base' and 'bench horde' record frame times and report avg/min/1%-low FPS for A/B testing performance mods." />
+	<Author value="Yaman + Claude" />
+	<Version value="0.1.0" />
+	<Website value="" />
+	<SkipWithAntiCheat value="true" />
+</xml>

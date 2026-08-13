@@ -1,0 +1,4 @@
+Key,File,Type,UsedInMainMenu,NoTranslate,english
+walle_deposit,UI,Tooltip,,,Deposit Items
+walleDepositDone,UI,Tooltip,,,Items deposited
+walleDepositNone,UI,Tooltip,,,Nothing to deposit
