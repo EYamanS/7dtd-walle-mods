@@ -1,9 +1,13 @@
 name: Release
 
-# On every push to main: read the mod version from ModInfo.xml, and if no release
-# exists for it yet, assemble the installer zip from the committed prebuilt DLLs
-# and publish a GitHub release. Bumping the version in src/WallePerf/ModInfo.xml
-# (and rebuilding locally so prebuilt/ is fresh) is all it takes to ship.
+# On every push to main:
+#  1. Assemble three installer zips from the committed prebuilt DLLs:
+#     combined (GitHub), WallePerf-only and WalleQoL-only (Nexus Mods).
+#  2. GitHub release: created when no release exists for the current WallePerf
+#     version (the "release train" version — bump it to ship).
+#  3. Nexus Mods: each mod is uploaded to its own Nexus mod page via the v3 API
+#     when that mod's version isn't already up there. Requires the
+#     NEXUS_API_KEY secret and the mod ids below; skipped otherwise.
 #
 # CI cannot compile the mods (building requires the game's proprietary
 # assemblies, which are never committed) — that's why prebuilt/ exists.
@@ -15,53 +19,91 @@ on:
 permissions:
   contents: write
 
+env:
+  NEXUS_GAME_DOMAIN: 7daystodie
+  # Game-scoped mod ids from the Nexus mod page URLs (nexusmods.com/7daystodie/mods/<id>)
+  NEXUS_WALLEPERF_MOD_ID: ""
+  NEXUS_WALLEQOL_MOD_ID: ""
+
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Read mod version
+      - name: Read mod versions
         id: v
         run: |
-          VERSION=$(grep -oP '(?<=Version value=")[^"]+' src/WallePerf/ModInfo.xml)
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Mod version: $VERSION"
+          VP=$(grep -oP '(?<=Version value=")[^"]+' src/WallePerf/ModInfo.xml)
+          VQ=$(grep -oP '(?<=Version value=")[^"]+' src/WalleQoL/ModInfo.xml)
+          echo "perf=$VP" >> "$GITHUB_OUTPUT"
+          echo "qol=$VQ" >> "$GITHUB_OUTPUT"
+          echo "WallePerf $VP / WalleQoL $VQ"
 
-      - name: Check if release already exists
-        id: exists
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if gh release view "v${{ steps.v.outputs.version }}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Release v${{ steps.v.outputs.version }} already exists — nothing to do."
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Assemble installer zip
-        if: steps.exists.outputs.exists == 'false'
+      - name: Assemble installer zips
         run: |
           set -e
-          test -f prebuilt/WallePerf.dll || { echo "ERROR: prebuilt/WallePerf.dll missing — run a local build before pushing a version bump"; exit 1; }
-          test -f prebuilt/WalleQoL.dll || { echo "ERROR: prebuilt/WalleQoL.dll missing — run a local build before pushing a version bump"; exit 1; }
-          STAGE=stage/Walle-Mods
-          mkdir -p "$STAGE/WallePerf" "$STAGE/WalleQoL/Config"
-          cp prebuilt/WallePerf.dll src/WallePerf/ModInfo.xml src/WallePerf/WallePerfConfig.xml "$STAGE/WallePerf/"
-          cp prebuilt/WalleQoL.dll src/WalleQoL/ModInfo.xml src/WalleQoL/WalleQoLConfig.xml "$STAGE/WalleQoL/"
-          cp src/WalleQoL/Config/Localization.txt "$STAGE/WalleQoL/Config/"
-          cp packaging/install.bat packaging/README.txt "$STAGE/"
-          cd stage/Walle-Mods && zip -r "../../Walle-Mods-v${{ steps.v.outputs.version }}.zip" . && cd ../..
-          unzip -l "Walle-Mods-v${{ steps.v.outputs.version }}.zip"
+          test -f prebuilt/WallePerf.dll || { echo "ERROR: prebuilt/WallePerf.dll missing — run a local build before pushing"; exit 1; }
+          test -f prebuilt/WalleQoL.dll || { echo "ERROR: prebuilt/WalleQoL.dll missing — run a local build before pushing"; exit 1; }
 
-      - name: Create release
-        if: steps.exists.outputs.exists == 'false'
+          stage_perf() {
+            mkdir -p "$1/WallePerf"
+            cp prebuilt/WallePerf.dll src/WallePerf/ModInfo.xml src/WallePerf/WallePerfConfig.xml "$1/WallePerf/"
+          }
+          stage_qol() {
+            mkdir -p "$1/WalleQoL/Config"
+            cp prebuilt/WalleQoL.dll src/WalleQoL/ModInfo.xml src/WalleQoL/WalleQoLConfig.xml "$1/WalleQoL/"
+            cp src/WalleQoL/Config/Localization.txt "$1/WalleQoL/Config/"
+          }
+
+          # combined (GitHub)
+          stage_perf stage/combined; stage_qol stage/combined
+          cp packaging/install.bat packaging/README.txt stage/combined/
+          (cd stage/combined && zip -r "$GITHUB_WORKSPACE/Walle-Mods-v${{ steps.v.outputs.perf }}.zip" .)
+
+          # WallePerf only (Nexus)
+          stage_perf stage/perf
+          cp packaging/install-WallePerf.bat packaging/README-WallePerf.txt stage/perf/
+          (cd stage/perf && zip -r "$GITHUB_WORKSPACE/WallePerf-v${{ steps.v.outputs.perf }}.zip" .)
+
+          # WalleQoL only (Nexus)
+          stage_qol stage/qol
+          cp packaging/install-WalleQoL.bat packaging/README-WalleQoL.txt stage/qol/
+          (cd stage/qol && zip -r "$GITHUB_WORKSPACE/WalleQoL-v${{ steps.v.outputs.qol }}.zip" .)
+
+          ls -la *.zip
+
+      - name: Create GitHub release if version is new
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v${{ steps.v.outputs.version }}" \
-            "Walle-Mods-v${{ steps.v.outputs.version }}.zip" \
+          TAG="v${{ steps.v.outputs.perf }}"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists — skipping GitHub release."
+            exit 0
+          fi
+          gh release create "$TAG" \
+            "Walle-Mods-v${{ steps.v.outputs.perf }}.zip" \
+            "WallePerf-v${{ steps.v.outputs.perf }}.zip" \
+            "WalleQoL-v${{ steps.v.outputs.qol }}.zip" \
             --repo "$GITHUB_REPOSITORY" \
-            --title "Walle Mods v${{ steps.v.outputs.version }}" \
+            --title "Walle Mods $TAG" \
             --notes-file packaging/RELEASE_NOTES.md
+
+      - name: Upload WallePerf to Nexus Mods
+        if: env.NEXUS_WALLEPERF_MOD_ID != ''
+        env:
+          NEXUS_API_KEY: ${{ secrets.NEXUS_API_KEY }}
+        run: |
+          ./.github/scripts/nexus-upload.sh \
+            "$NEXUS_GAME_DOMAIN" "$NEXUS_WALLEPERF_MOD_ID" "WallePerf" \
+            "${{ steps.v.outputs.perf }}" "WallePerf-v${{ steps.v.outputs.perf }}.zip"
+
+      - name: Upload WalleQoL to Nexus Mods
+        if: env.NEXUS_WALLEQOL_MOD_ID != ''
+        env:
+          NEXUS_API_KEY: ${{ secrets.NEXUS_API_KEY }}
+        run: |
+          ./.github/scripts/nexus-upload.sh \
+            "$NEXUS_GAME_DOMAIN" "$NEXUS_WALLEQOL_MOD_ID" "WalleQoL" \
+            "${{ steps.v.outputs.qol }}" "WalleQoL-v${{ steps.v.outputs.qol }}.zip"
