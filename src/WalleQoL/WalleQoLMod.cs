@@ -21,6 +21,21 @@ namespace WalleQoL
 				typeof(Patches.LiveContainerSyncPatch),
 			}),
 			("QuickDeposit", new[] { typeof(Patches.DepositCommandPatch), typeof(Patches.DepositEnablePatch), typeof(Patches.DepositActivatePatch) }),
+			("CraftFromContainers", new[]
+			{
+				typeof(Patches.CfcScopeCraftHasItems),
+				typeof(Patches.CfcScopeCraftActivate),
+				typeof(Patches.CfcScopeCraftCount),
+				typeof(Patches.CfcScopeIngredientEntry),
+				typeof(Patches.CfcScopeRecipeTracker),
+				typeof(Patches.CfcScopeRepairRefresh),
+				typeof(Patches.CfcScopeRepairActivate),
+				typeof(Patches.CfcRecipeListAugment),
+				typeof(Patches.CfcAllStacksAugment),
+				typeof(Patches.CfcItemCountAugment),
+				typeof(Patches.CfcHasItemsAugment),
+				typeof(Patches.CfcRemoveItemsAugment),
+			}),
 		};
 
 		public void InitMod(Mod _modInstance)
@@ -48,7 +63,7 @@ namespace WalleQoL
 					Log.Exception(e);
 				}
 			}
-			Log.Out("[WalleQoL] v0.2.0 loaded");
+			Log.Out("[WalleQoL] v0.3.0 loaded");
 		}
 
 		static bool ReadFlag(XmlNode node, string attribute, bool fallback)
@@ -91,6 +106,15 @@ namespace WalleQoL
 						Patches.SharedConfig.WorldLoot = ReadFlag(node, "worldLoot", Patches.SharedConfig.WorldLoot);
 						Patches.SharedConfig.Workstations = ReadFlag(node, "workstations", Patches.SharedConfig.Workstations);
 						Patches.SharedConfig.DroppedBags = ReadFlag(node, "droppedBags", Patches.SharedConfig.DroppedBags);
+					}
+					if (string.Equals(name, "CraftFromContainers", StringComparison.OrdinalIgnoreCase))
+					{
+						string range = node.Attributes?["range"]?.Value;
+						if (int.TryParse(range, out int parsedRange) && parsedRange > 0)
+						{
+							Patches.CfcConfig.Range = Math.Min(parsedRange, 50);
+						}
+						Patches.CfcConfig.Repair = ReadFlag(node, "repair", Patches.CfcConfig.Repair);
 					}
 				}
 			}

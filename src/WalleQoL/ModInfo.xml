@@ -4,7 +4,7 @@
 	<DisplayName value="Walle Quality of Life" />
 	<Description value="Shared container access (multiple players in one chest) and a quick 'Deposit items' command on the container radial menu." />
 	<Author value="Yaman + Claude" />
-	<Version value="0.2.0" />
+	<Version value="0.3.0" />
 	<Website value="" />
 	<SkipWithAntiCheat value="true" />
 </xml>

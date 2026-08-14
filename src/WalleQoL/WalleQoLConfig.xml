@@ -15,4 +15,11 @@
 	     tops up existing stacks in the container from your backpack without opening it
 	     (same as the single-arrow button inside). Respects your locked backpack slots. -->
 	<feature name="QuickDeposit" enabled="true" />
+	<!-- Crafting (and item repair) pulls missing ingredients from YOUR placed storage within
+	     range meters. Backpack/toolbelt are consumed first; container locks and user-locked
+	     container slots are respected; world loot is never touched. Trader/vending/lockpick
+	     costs always come from your real inventory (by design).
+	       range  - scan radius in meters (max 50)
+	       repair - item repair may also pull repair materials from storage -->
+	<feature name="CraftFromContainers" enabled="true" range="15" repair="true" />
 </WalleQoL>

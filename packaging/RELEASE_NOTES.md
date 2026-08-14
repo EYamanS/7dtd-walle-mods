@@ -16,6 +16,7 @@ Verify in-game: press F1 and look for `[WallePerf] ... patches active` and `[Wal
 **WalleQoL** —
 - **Shared containers & stations**: several players can use the same chest, workbench, forge, cabinet, car or dropped bag at the same time (live-syncing windows, uses the game's own shared-lock system). Per-scope toggles in the config; quest containers stay vanilla.
 - **Quick deposit**: "Deposit Items" on the hold-E radial of your placed containers — tops up matching stacks from your backpack without opening the chest, with `-N item` feed entries. Respects locked backpack slots.
+- **Craft from containers**: crafting and item repair pull missing ingredients from your placed storage within range (default 15m). Backpack first, containers for the shortfall; locks and reserved (user-locked) container slots respected; trader/vending/lockpick costs always come from your real inventory.
 
 The zip contains the two gameplay mods. The source repo also has **WalleBench** (`bench auto` — automated A/B benchmark + subsystem profiler) if you want to measure your own machine.
 

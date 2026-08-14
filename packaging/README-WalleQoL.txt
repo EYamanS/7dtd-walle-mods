@@ -18,6 +18,14 @@ Two features for co-op play:
   pickup feed, respects locked backpack slots, skips chests you are
   locked out of.
 
+* CRAFT FROM CONTAINERS - crafting and item repair pull missing
+  ingredients straight from your placed storage within range
+  (default 15m, configurable). Backpack and toolbelt are used first,
+  chests only cover the shortfall; the pickup feed shows what came
+  out of storage. Container locks and user-locked container slots
+  are respected. Trader purchases, vending rent and lockpicks always
+  use your real inventory (no exploits). World loot is never touched.
+
 Install
 -------
 1. Run install-WalleQoL.bat (finds your game automatically; asks if not).
