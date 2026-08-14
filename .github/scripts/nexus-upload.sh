@@ -55,8 +55,11 @@ UPLOAD_ID=$(echo "$UPLOAD_JSON" | jq -r '.data.id')
 PRESIGNED=$(echo "$UPLOAD_JSON" | jq -r '.data.presigned_url')
 echo "Upload session $UPLOAD_ID created, uploading $SIZE bytes..."
 
+# The presigned URL signs content-disposition, content-type and host —
+# Content-Type must be application/octet-stream or S3 rejects the signature.
 curl -sS -f -X PUT "$PRESIGNED" \
   -H "Content-Disposition: attachment; filename=\"$BASENAME\"" \
+  -H "Content-Type: application/octet-stream" \
   --upload-file "$ZIP_PATH" >/dev/null
 
 api POST "/uploads/$UPLOAD_ID/finalise" >/dev/null
