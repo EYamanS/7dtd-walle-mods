@@ -35,6 +35,9 @@ namespace WalleQoL
 				typeof(Patches.CfcItemCountAugment),
 				typeof(Patches.CfcHasItemsAugment),
 				typeof(Patches.CfcRemoveItemsAugment),
+				typeof(Patches.CfcForgeHasItemsAugment),
+				typeof(Patches.CfcForgeRemoveItemsAugment),
+				typeof(Patches.CfcForgeCraftCountAugment),
 			}),
 		};
 
@@ -63,7 +66,7 @@ namespace WalleQoL
 					Log.Exception(e);
 				}
 			}
-			Log.Out("[WalleQoL] v0.3.0 loaded");
+			Log.Out("[WalleQoL] v0.4.0 loaded");
 		}
 
 		static bool ReadFlag(XmlNode node, string attribute, bool fallback)
@@ -115,6 +118,7 @@ namespace WalleQoL
 							Patches.CfcConfig.Range = Math.Min(parsedRange, 50);
 						}
 						Patches.CfcConfig.Repair = ReadFlag(node, "repair", Patches.CfcConfig.Repair);
+						Patches.CfcConfig.Forge = ReadFlag(node, "forge", Patches.CfcConfig.Forge);
 					}
 				}
 			}

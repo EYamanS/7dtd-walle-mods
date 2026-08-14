@@ -20,6 +20,9 @@
 	     container slots are respected; world loot is never touched. Trader/vending/lockpick
 	     costs always come from your real inventory (by design).
 	       range  - scan radius in meters (max 50)
-	       repair - item repair may also pull repair materials from storage -->
-	<feature name="CraftFromContainers" enabled="true" range="15" repair="true" />
+	       repair - item repair may also pull repair materials from storage
+	       forge  - forge recipes may consume raw smeltables from chests at material value
+	                (smelted bank units are always used first; leftover units from consumed
+	                items are credited into the forge bank, nothing is wasted) -->
+	<feature name="CraftFromContainers" enabled="true" range="15" repair="true" forge="true" />
 </WalleQoL>

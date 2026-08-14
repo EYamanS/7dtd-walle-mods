@@ -25,6 +25,7 @@ namespace WalleQoL.Patches
 	{
 		public static int Range = 15;      // meters
 		public static bool Repair = true;  // item repair may consume repair mats from storage
+		public static bool Forge = true;   // forge recipes may consume chest smeltables at material value
 	}
 
 	public static class Cfc
@@ -223,6 +224,149 @@ namespace WalleQoL.Patches
 			}
 			player.PlayerUI?.xui?.CollectedItemList?.RemoveItemStack(new ItemStack(itemValue.Clone(), count));
 		}
+
+		// ---------------- forge material support ----------------
+		// Forge recipes consume smelted material units (unit_iron, unit_brass...) from the
+		// material bank. With Forge enabled, the shortfall can come from raw smeltables in
+		// nearby chests at their material value (ItemClass.GetWeight(), the same conversion
+		// the smelter itself uses at TileEntityWorkstation.HandleMaterialInput). Whole items
+		// are consumed; leftover units are credited INTO the forge bank so nothing is wasted.
+		// This intentionally skips the melt timer for the shortfall — the bank is always
+		// drained first, so pre-smelted units keep their value.
+
+		// Only genuine unit ingredients trigger material matching; a regular item ingredient
+		// that happens to be made of a forgeable material must never be substituted.
+		public static string UnitCategoryOf(ItemValue itemValue)
+		{
+			ItemClass itemClass = itemValue?.ItemClass;
+			if (itemClass == null || itemClass.Name == null || !itemClass.Name.StartsWith("unit_"))
+			{
+				return null;
+			}
+			return itemClass.MadeOfMaterial?.ForgeCategory;
+		}
+
+		static bool IsSmeltableFor(ItemStack stack, string category)
+		{
+			ItemClass itemClass = stack.itemValue.ItemClass;
+			string itemCategory = itemClass?.MadeOfMaterial?.ForgeCategory;
+			return itemCategory != null && itemCategory.EqualsCaseInsensitive(category) && itemClass.GetWeight() > 0;
+		}
+
+		public static int ChestUnitsOf(string category)
+		{
+			if (category == null)
+			{
+				return 0;
+			}
+			int units = 0;
+			List<TEFeatureStorage> containers = GetNearby();
+			for (int c = 0; c < containers.Count; c++)
+			{
+				ItemStack[] items = containers[c].items;
+				for (int s = 0; s < items.Length; s++)
+				{
+					if (IsPullable(containers[c], s, items[s]) && IsSmeltableFor(items[s], category))
+					{
+						units += items[s].count * items[s].itemValue.ItemClass.GetWeight();
+					}
+				}
+			}
+			return units;
+		}
+
+		// Virtual unit stacks for the forge recipe list / craft-count math (aggregated per
+		// category, using the same "unit_" + category lookup the smelter uses).
+		public static void AppendForgeUnitStacks(List<ItemStack> target)
+		{
+			Dictionary<string, int> unitsByCategory = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+			List<TEFeatureStorage> containers = GetNearby();
+			for (int c = 0; c < containers.Count; c++)
+			{
+				ItemStack[] items = containers[c].items;
+				for (int s = 0; s < items.Length; s++)
+				{
+					if (!IsPullable(containers[c], s, items[s]))
+					{
+						continue;
+					}
+					ItemClass itemClass = items[s].itemValue.ItemClass;
+					string category = itemClass?.MadeOfMaterial?.ForgeCategory;
+					if (category == null || itemClass.GetWeight() <= 0)
+					{
+						continue;
+					}
+					unitsByCategory.TryGetValue(category, out int have);
+					unitsByCategory[category] = have + items[s].count * itemClass.GetWeight();
+				}
+			}
+			foreach (var kv in unitsByCategory)
+			{
+				ItemValue unitItem = ItemClass.GetItem("unit_" + kv.Key);
+				if (unitItem != null && unitItem.type != 0)
+				{
+					target.Add(new ItemStack(unitItem, kv.Value));
+				}
+			}
+		}
+
+		// Drain chest smeltables to cover `needed` units of the given unit ingredient.
+		// Whole items are consumed; change is credited to the forge bank via SetWeight.
+		public static int TakeForgeUnits(XUiC_WorkstationMaterialInputGrid grid, ItemValue unitItemValue, int needed, IList<ItemStack> removedItems)
+		{
+			string category = UnitCategoryOf(unitItemValue);
+			if (category == null || needed <= 0)
+			{
+				return 0;
+			}
+			int taken = 0;
+			List<TEFeatureStorage> containers = GetNearby();
+			for (int c = 0; c < containers.Count && taken < needed; c++)
+			{
+				TEFeatureStorage storage = containers[c];
+				ItemStack[] items = storage.items;
+				bool changed = false;
+				storage.Parent.SetDisableModifiedCheck(true);
+				try
+				{
+					for (int s = 0; s < items.Length && taken < needed; s++)
+					{
+						if (!IsPullable(storage, s, items[s]) || !IsSmeltableFor(items[s], category))
+						{
+							continue;
+						}
+						int weight = items[s].itemValue.ItemClass.GetWeight();
+						int wantItems = (needed - taken + weight - 1) / weight;
+						int take = Math.Min(items[s].count, wantItems);
+						items[s].count -= take;
+						taken += take * weight;
+						changed = true;
+						if (items[s].count <= 0)
+						{
+							items[s] = ItemStack.Empty;
+						}
+					}
+				}
+				finally
+				{
+					storage.Parent.SetDisableModifiedCheck(false);
+				}
+				if (changed)
+				{
+					storage.SetModified();
+				}
+			}
+			int used = Math.Min(taken, needed);
+			if (taken > needed)
+			{
+				grid.SetWeight(unitItemValue, taken - needed); // change goes into the bank
+			}
+			if (used > 0)
+			{
+				removedItems?.Add(new ItemStack(unitItemValue.Clone(), used));
+			}
+			return used;
+		}
 	}
 
 	// ---------------- scope entry points (crafting + repair call chains) ----------------
@@ -279,19 +423,159 @@ namespace WalleQoL.Patches
 	// ---------------- recipe list availability (stack-list based, not count based) ----------------
 
 	// The recipe list computes craftability from a raw stack list. Append container stacks
-	// before it is built — except at workstations with an input grid (forge, mixer...),
-	// where crafting consumes from the grid and inflating the list would show green
-	// recipes the grid can't pay for.
+	// before it is built. At the forge (material input grid) the list holds unit stacks, so
+	// chest smeltables are appended as virtual unit stacks instead; the matching consumption
+	// patches below make those recipes actually payable.
 	[HarmonyPatch(typeof(XUiC_RecipeList), nameof(XUiC_RecipeList.BuildRecipeInfosList))]
 	public static class CfcRecipeListAugment
 	{
 		public static void Prefix(XUiC_RecipeList __instance, List<ItemStack> _items)
 		{
-			if (__instance.windowGroup?.Controller?.GetChildByType<XUiC_WorkstationInputGrid>() != null)
+			XUiC_WorkstationInputGrid grid = __instance.windowGroup?.Controller?.GetChildByType<XUiC_WorkstationInputGrid>();
+			if (grid != null)
 			{
+				if (CfcConfig.Forge && grid is XUiC_WorkstationMaterialInputGrid)
+				{
+					Cfc.AppendForgeUnitStacks(_items);
+				}
 				return;
 			}
 			Cfc.AppendStacks(_items);
+		}
+	}
+
+	// ---------------- forge: craft-enable gate, consumption, max-craft count ----------------
+
+	[HarmonyPatch(typeof(XUiC_WorkstationInputGrid), nameof(XUiC_WorkstationInputGrid.HasItems))]
+	public static class CfcForgeHasItemsAugment
+	{
+		public static void Postfix(XUiC_WorkstationInputGrid __instance, IList<ItemStack> _itemStacks, int _multiplier, ref bool __result)
+		{
+			if (__result || !CfcConfig.Forge || !Cfc.Active || !(__instance is XUiC_WorkstationMaterialInputGrid))
+			{
+				return;
+			}
+			for (int i = 0; i < _itemStacks.Count; i++)
+			{
+				int need = _itemStacks[i].count * _multiplier - __instance.GetItemCount(_itemStacks[i].itemValue);
+				if (need > 0)
+				{
+					need -= Cfc.ChestUnitsOf(Cfc.UnitCategoryOf(_itemStacks[i].itemValue));
+				}
+				if (need > 0)
+				{
+					return;
+				}
+			}
+			__result = true;
+		}
+	}
+
+	// Consumption: bank units first (vanilla DecItem, keeps TE sync), chest smeltables for
+	// the shortfall with change credited back into the bank.
+	[HarmonyPatch(typeof(XUiC_WorkstationInputGrid), nameof(XUiC_WorkstationInputGrid.RemoveItems))]
+	public static class CfcForgeRemoveItemsAugment
+	{
+		public static bool Prefix(XUiC_WorkstationInputGrid __instance, IList<ItemStack> _itemStacks, int _multiplier, IList<ItemStack> _removedItems)
+		{
+			if (!CfcConfig.Forge || !Cfc.Active || !(__instance is XUiC_WorkstationMaterialInputGrid materialGrid))
+			{
+				return true;
+			}
+			for (int i = 0; i < _itemStacks.Count; i++)
+			{
+				int need = _itemStacks[i].count * _multiplier;
+				need -= __instance.DecItem(_itemStacks[i].itemValue, need, _removedItems);
+				if (need > 0)
+				{
+					int taken = Cfc.TakeForgeUnits(materialGrid, _itemStacks[i].itemValue, need, _removedItems);
+					Cfc.ShowTakenToast(__instance.xui?.playerUI?.entityPlayer, _itemStacks[i].itemValue, taken);
+				}
+			}
+			return false;
+		}
+	}
+
+	// Max-craft count at the forge: recompute with chest units included (mirrors the vanilla
+	// algorithm exactly, including the per-ingredient crafting modifier).
+	[HarmonyPatch(typeof(XUiC_RecipeCraftCount), "calcMaxCraftable")]
+	public static class CfcForgeCraftCountAugment
+	{
+		public static void Postfix(XUiC_RecipeCraftCount __instance, ref int __result)
+		{
+			if (!CfcConfig.Forge)
+			{
+				return;
+			}
+			XUiC_WorkstationInputGrid grid = __instance.windowGroup?.Controller?.GetChildByType<XUiC_WorkstationInputGrid>();
+			if (!(grid is XUiC_WorkstationMaterialInputGrid))
+			{
+				return;
+			}
+			Recipe recipe = __instance.recipe;
+			if (recipe == null)
+			{
+				return;
+			}
+			ItemStack[] array = grid.GetSlots();
+			for (int i = 0; i < recipe.ingredients.Count; i++)
+			{
+				if (recipe.ingredients[i] != null && recipe.ingredients[i].itemValue.HasQuality)
+				{
+					return; // vanilla returned 1 for quality recipes; keep it
+				}
+			}
+			int result = int.MaxValue;
+			int craftingTier = ((recipe.craftingTier == -1) ? recipe.GetCraftingTier(__instance.xui.playerUI.entityPlayer) : recipe.craftingTier);
+			for (int j = 0; j < recipe.ingredients.Count; j++)
+			{
+				ItemStack ingredient = recipe.ingredients[j];
+				if (ingredient == null || ingredient.itemValue.type == 0)
+				{
+					continue;
+				}
+				float perCraft;
+				if (recipe.UseIngredientModifier)
+				{
+					perCraft = (int)EffectManager.GetValue(PassiveEffects.CraftingIngredientCount, null, ingredient.count, __instance.xui.playerUI.entityPlayer, recipe, FastTags<TagGroup.Global>.Parse(ingredient.itemValue.ItemClass.GetItemName()), calcEquipment: true, calcHoldingItem: true, calcProgression: true, calcBuffs: true, calcChallenges: true, craftingTier);
+					if (perCraft > 0f)
+					{
+						perCraft = (int)(perCraft * XUiM_Recipes.GetCraftingInputModifier(recipe));
+						if (XUiM_Recipes.CraftingInputModifier > 0f)
+						{
+							perCraft = Utils.FastMax(1f, perCraft);
+						}
+					}
+				}
+				else
+				{
+					perCraft = ingredient.count;
+				}
+				if (perCraft < 1f)
+				{
+					continue;
+				}
+				int available = 0;
+				for (int k = 0; k < array.Length; k++)
+				{
+					if (array[k] != null && array[k].itemValue.type != 0 && ingredient.itemValue.type == array[k].itemValue.type)
+					{
+						available += array[k].count;
+					}
+				}
+				available += Cfc.ChestUnitsOf(Cfc.UnitCategoryOf(ingredient.itemValue));
+				int craftable = Mathf.CeilToInt((float)available / perCraft);
+				if (Mathf.FloorToInt(perCraft * (float)craftable) > available)
+				{
+					craftable--;
+				}
+				result = Mathf.Min(craftable, result);
+				if (result == 0)
+				{
+					break;
+				}
+			}
+			__result = ((XUiM_Recipes.CraftingInputModifier == 0f) ? 10000 : Mathf.Clamp(result, 1, 10000));
 		}
 	}
 

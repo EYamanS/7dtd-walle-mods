@@ -25,6 +25,12 @@ Two features for co-op play:
   out of storage. Container locks and user-locked container slots
   are respected. Trader purchases, vending rent and lockpicks always
   use your real inventory (no exploits). World loot is never touched.
+  Works at campfire, workbench, chemistry station, cement mixer AND
+  the forge: smelted bank units are used first, then raw smeltables
+  from chests cover the shortfall at material value - leftover units
+  from consumed items are credited into the forge bank (no waste).
+  Station tools (cooking pot, grill, molds...) must still be
+  installed in the station itself.
 
 Install
 -------
