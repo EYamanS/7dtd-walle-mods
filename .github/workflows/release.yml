@@ -22,8 +22,8 @@ permissions:
 env:
   NEXUS_GAME_DOMAIN: 7daystodie
   # Game-scoped mod ids from the Nexus mod page URLs (nexusmods.com/7daystodie/mods/<id>)
-  NEXUS_WALLEPERF_MOD_ID: ""
-  NEXUS_WALLEQOL_MOD_ID: ""
+  NEXUS_WALLEPERF_MOD_ID: "12020"
+  NEXUS_WALLEQOL_MOD_ID: "12021"
 
 jobs:
   release:
