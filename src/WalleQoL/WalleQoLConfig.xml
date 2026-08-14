@@ -1,16 +1,14 @@
 <!-- WalleQoL: set enabled="false" to turn a feature off (takes effect on next game start). -->
 <WalleQoL>
-	<!-- Multiple players can use the same container/station at once.
+	<!-- Multiple players can use the same container at once.
 	     Must be installed on the host/server AND all players.
-	     Scope toggles (all default true):
-	       playerStorage - chests and other containers you placed
-	       worldLoot     - cabinets, cars, crates, any lootable block (quest loot stays vanilla)
-	       workstations  - forge, workbench, chemistry station, cement mixer...
-	                       (note: two players editing the CRAFT QUEUE in the same
-	                       instant is last-write-wins; item slots sync live)
-	       droppedBags   - dropped backpacks, zombie loot bags, supply crates -->
+	     Scope toggles:
+	       playerStorage - chests and other containers you placed (default ON, stable)
+	       worldLoot     - cabinets, cars, crates, any lootable block (EXPERIMENTAL, default off)
+	       workstations  - forge, workbench, chemistry, mixer... (EXPERIMENTAL, default off)
+	       droppedBags   - dropped backpacks, loot bags, crates (EXPERIMENTAL, default off) -->
 	<feature name="SharedContainers" enabled="true"
-	         playerStorage="true" worldLoot="true" workstations="true" droppedBags="true" />
+	         playerStorage="true" worldLoot="false" workstations="false" droppedBags="false" />
 	<!-- Adds a "Deposit items" command to the hold-E radial menu of player-placed containers:
 	     tops up existing stacks in the container from your backpack without opening it
 	     (same as the single-arrow button inside). Respects your locked backpack slots. -->

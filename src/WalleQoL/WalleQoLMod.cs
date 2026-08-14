@@ -66,7 +66,7 @@ namespace WalleQoL
 					Log.Exception(e);
 				}
 			}
-			Log.Out("[WalleQoL] v0.4.0 loaded");
+			Log.Out("[WalleQoL] v0.4.1 loaded");
 		}
 
 		static bool ReadFlag(XmlNode node, string attribute, bool fallback)

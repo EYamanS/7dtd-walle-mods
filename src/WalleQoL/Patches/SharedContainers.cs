@@ -7,9 +7,12 @@ namespace WalleQoL.Patches
 	public static class SharedConfig
 	{
 		public static bool PlayerStorage = true;
-		public static bool WorldLoot = true;
-		public static bool Workstations = true;
-		public static bool DroppedBags = true;
+		// The three scopes below shipped in 0.2.0 and were reported buggy in real play;
+		// they default OFF since 0.4.1 and are opt-in experimental until the underlying
+		// sync issues are reproduced and fixed.
+		public static bool WorldLoot = false;
+		public static bool Workstations = false;
+		public static bool DroppedBags = false;
 	}
 
 	// The v2.x LockManager natively supports shared locks (that is how several players use

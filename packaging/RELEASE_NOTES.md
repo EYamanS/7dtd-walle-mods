@@ -14,7 +14,7 @@ Verify in-game: press F1 and look for `[WallePerf] ... patches active` and `[Wal
 **WallePerf** — 23 Harmony performance patches: benchmarked at **~+7% average FPS** and **~+15% smoother 1% lows during hordes**, plus the block-place/dig hitch fixed, HUD cost halved, pathfinding spam removed, and distant-zombie shadow/animation load shedding. Every patch toggleable in `WallePerfConfig.xml`; `walleperf on|off` in the console toggles them live.
 
 **WalleQoL** —
-- **Shared containers & stations**: several players can use the same chest, workbench, forge, cabinet, car or dropped bag at the same time (live-syncing windows, uses the game's own shared-lock system). Per-scope toggles in the config; quest containers stay vanilla.
+- **Shared containers**: several players can open the same placed chest at the same time (live-syncing windows, uses the game's own shared-lock system). World loot / workstations / dropped bags sharing is available as experimental opt-in scopes in the config (off by default); quest containers stay vanilla.
 - **Quick deposit**: "Deposit Items" on the hold-E radial of your placed containers — tops up matching stacks from your backpack without opening the chest, with `-N item` feed entries. Respects locked backpack slots.
 - **Craft from containers**: crafting and item repair pull missing ingredients from your placed storage within range (default 15m). Works at campfire, workbench, chemistry station, cement mixer AND the forge (smelted bank units used first, chest smeltables cover the shortfall at material value, change credited back to the bank). Backpack first, containers for the shortfall; locks and reserved (user-locked) container slots respected; trader/vending/lockpick costs always come from your real inventory.
 
