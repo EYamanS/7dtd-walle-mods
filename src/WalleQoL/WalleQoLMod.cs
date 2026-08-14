@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
@@ -12,7 +12,14 @@ namespace WalleQoL
 
 		static readonly (string name, Type[] types)[] Features =
 		{
-			("SharedContainers", new[] { typeof(Patches.SharedLockPatch), typeof(Patches.LiveContainerSyncPatch) }),
+			("SharedContainers", new[]
+			{
+				typeof(Patches.SharedLockPatch),
+				typeof(Patches.WorkstationSharedLockPatch),
+				typeof(Patches.EntityBagSharedLockPatch),
+				typeof(Patches.DestroyOnCloseGuardPatch),
+				typeof(Patches.LiveContainerSyncPatch),
+			}),
 			("QuickDeposit", new[] { typeof(Patches.DepositCommandPatch), typeof(Patches.DepositEnablePatch), typeof(Patches.DepositActivatePatch) }),
 		};
 
@@ -41,7 +48,17 @@ namespace WalleQoL
 					Log.Exception(e);
 				}
 			}
-			Log.Out("[WalleQoL] v0.1.0 loaded");
+			Log.Out("[WalleQoL] v0.2.0 loaded");
+		}
+
+		static bool ReadFlag(XmlNode node, string attribute, bool fallback)
+		{
+			string value = node.Attributes?[attribute]?.Value;
+			if (bool.TryParse(value, out bool parsed))
+			{
+				return parsed;
+			}
+			return fallback;
 		}
 
 		static HashSet<string> LoadDisabled(Mod _modInstance)
@@ -60,9 +77,20 @@ namespace WalleQoL
 				{
 					string name = node.Attributes?["name"]?.Value;
 					string enabled = node.Attributes?["enabled"]?.Value;
-					if (name != null && string.Equals(enabled, "false", StringComparison.OrdinalIgnoreCase))
+					if (name == null)
+					{
+						continue;
+					}
+					if (string.Equals(enabled, "false", StringComparison.OrdinalIgnoreCase))
 					{
 						disabled.Add(name);
+					}
+					if (string.Equals(name, "SharedContainers", StringComparison.OrdinalIgnoreCase))
+					{
+						Patches.SharedConfig.PlayerStorage = ReadFlag(node, "playerStorage", Patches.SharedConfig.PlayerStorage);
+						Patches.SharedConfig.WorldLoot = ReadFlag(node, "worldLoot", Patches.SharedConfig.WorldLoot);
+						Patches.SharedConfig.Workstations = ReadFlag(node, "workstations", Patches.SharedConfig.Workstations);
+						Patches.SharedConfig.DroppedBags = ReadFlag(node, "droppedBags", Patches.SharedConfig.DroppedBags);
 					}
 				}
 			}

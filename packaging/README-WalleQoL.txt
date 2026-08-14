@@ -3,9 +3,14 @@ WALLEQOL - Quality of life for 7 Days to Die V2.x
 
 Two features for co-op play:
 
-* SHARED CONTAINERS - several players can open the same chest at the
-  same time, with live-syncing windows. No more "container in use".
+* SHARED CONTAINERS AND STATIONS - several players can use the same
+  chest, workbench, forge, cabinet, car or dropped bag at the same
+  time, with live-syncing windows. No more "container in use".
   Built on the game's own shared-lock system (the one traders use).
+  Per-scope toggles in WalleQoLConfig.xml (player storage, world
+  loot, workstations, dropped bags); quest containers stay vanilla.
+  Note: two players editing a workstation CRAFT QUEUE in the same
+  instant is last-write-wins; item slots sync live.
 
 * QUICK DEPOSIT - hold E on any of your placed containers and pick
   "Deposit Items": tops up all matching stacks in the chest straight

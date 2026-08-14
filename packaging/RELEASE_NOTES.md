@@ -14,7 +14,7 @@ Verify in-game: press F1 and look for `[WallePerf] ... patches active` and `[Wal
 **WallePerf** — 23 Harmony performance patches: benchmarked at **~+7% average FPS** and **~+15% smoother 1% lows during hordes**, plus the block-place/dig hitch fixed, HUD cost halved, pathfinding spam removed, and distant-zombie shadow/animation load shedding. Every patch toggleable in `WallePerfConfig.xml`; `walleperf on|off` in the console toggles them live.
 
 **WalleQoL** —
-- **Shared containers**: several players can open the same chest at the same time (live-syncing, uses the game's own shared-lock system)
+- **Shared containers & stations**: several players can use the same chest, workbench, forge, cabinet, car or dropped bag at the same time (live-syncing windows, uses the game's own shared-lock system). Per-scope toggles in the config; quest containers stay vanilla.
 - **Quick deposit**: "Deposit Items" on the hold-E radial of your placed containers — tops up matching stacks from your backpack without opening the chest, with `-N item` feed entries. Respects locked backpack slots.
 
 The zip contains the two gameplay mods. The source repo also has **WalleBench** (`bench auto` — automated A/B benchmark + subsystem profiler) if you want to measure your own machine.

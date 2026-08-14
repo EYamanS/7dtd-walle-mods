@@ -28,7 +28,7 @@ What it actually fixes (full details in [ANALYSIS.md](ANALYSIS.md)):
 
 ## 🎒 WalleQoL — the quality of life mod
 
-- **Shared containers (multiplayer)**: multiple players can open the **same chest at the same time**, with live-syncing windows — no more "container in use". Built on the game's own shared-lock system (the one traders already use).
+- **Shared containers & stations (multiplayer)**: multiple players can use the **same chest, workbench, forge, cabinet, car, or dropped bag at the same time**, with live-syncing windows — no more "container in use". Built on the game's own shared-lock system (the one traders already use). Covers player storage, world loot (loot rolls exactly once, server-side — verified against the decompiled loot code), workstations, and lootable item entities; each scope has its own config toggle, and quest containers stay vanilla for quest integrity.
 - **Quick deposit**: hold E on any of your placed containers → **"Deposit Items"** — tops up all matching stacks in the chest straight from your backpack without opening it. Shows `−N item` entries in the pickup feed, respects your locked backpack slots, skips chests you're locked out of.
 
 ![Deposit Items on the container radial menu](docs/quick-deposit-radial.png)
