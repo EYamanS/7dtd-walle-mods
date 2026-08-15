@@ -11,3 +11,6 @@ dist/
 # IDE / misc
 .vs/
 *.user
+
+# Player save data backups — personal data, never publish
+player-backups/

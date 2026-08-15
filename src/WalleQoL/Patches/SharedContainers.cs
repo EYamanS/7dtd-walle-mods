@@ -100,14 +100,29 @@ namespace WalleQoL.Patches
 	// (XUiC_LootContainer.OnTileEntityChanged rebinds all slots).
 	// We still skip applying while our own optimistic write is in flight
 	// (bWaitingForServerResponse) so a stale broadcast can't clobber a just-made local move.
+	//
+	// IMPORTANT: only applies to containers whose scope is actually SHARED. Vanilla's
+	// discard-while-open makes loot windows immune to network races (e.g. a quest
+	// container's open-time population broadcast landing after the player already took the
+	// quest item — accepting it makes the item reappear in the container: the "can't pick
+	// up the quest item" glitch). Unshared containers keep exact vanilla behavior.
 	[HarmonyPatch(typeof(TEFeatureStorage), nameof(TEFeatureStorage.Read), typeof(PooledBinaryReader), typeof(TileEntity.StreamModeRead))]
 	public static class LiveContainerSyncPatch
 	{
+		static bool SharingEnabledFor(TEFeatureStorage storage)
+		{
+			if (storage.bPlayerStorage)
+			{
+				return SharedConfig.PlayerStorage;
+			}
+			return SharedConfig.WorldLoot && !storage.isQuestLoot;
+		}
+
 		public static void Prefix(TEFeatureStorage __instance, out bool __state)
 		{
 			__state = false;
 			TileEntityComposite parent = __instance.Parent;
-			if (parent != null && parent.IsUserAccessing() && !parent.bWaitingForServerResponse)
+			if (parent != null && parent.IsUserAccessing() && !parent.bWaitingForServerResponse && SharingEnabledFor(__instance))
 			{
 				parent.SetUserAccessing(false);
 				__state = true;
